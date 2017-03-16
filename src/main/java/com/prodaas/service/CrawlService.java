@@ -9,15 +9,20 @@ import com.prodaas.mapper.GeetestTrailStatMapper;
 import com.prodaas.model.GeetestTrail;
 import com.prodaas.util.ImageUtils;
 import com.prodaas.util.JSEngine;
+import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +58,11 @@ public class CrawlService {
     private int tryCount;
     @Value("${proxy_timeout}")
     private int proxyTimeout;
+
+    @Value("${proxy_host}")
+    private String proxyhost;
+    @Value("${proxy_port}")
+    private int proxyport;
 
     @Autowired
     private GeetestTrailStatMapper geetestTrailStatMapper;
@@ -101,6 +112,9 @@ public class CrawlService {
         try {
             RequestConfig.Builder builder = RequestConfig.custom()
                     .setConnectTimeout(proxyTimeout).setSocketTimeout(proxyTimeout);
+            if (proxy == null) {
+                proxy = new HttpHost(proxyhost, proxyport);
+            }
             if (proxy!=null) {
                 builder.setProxy(proxy);
             }
@@ -243,6 +257,45 @@ public class CrawlService {
                 result.put("challenge", challenge);
                 result.put("validate", validate);
                 geetestTrailStatMapper.updateSuccess(geetestTrail.getTrailId(), botId);
+
+                List<NameValuePair> formparams = new ArrayList<>();
+                formparams.add(new BasicNameValuePair("tab", "ent_tab"));
+                formparams.add(new BasicNameValuePair("token", ""));
+                formparams.add(new BasicNameValuePair("geetest_challenge", challenge));
+                formparams.add(new BasicNameValuePair("geetest_validate", validate));
+                formparams.add(new BasicNameValuePair("geetest_seccode", validate+"|jordan"));
+                formparams.add(new BasicNameValuePair("searchword", "中国技术创新"));
+                UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, Consts.UTF_8);
+                HttpPost httppost = new HttpPost("http://www.gsxt.gov.cn/corp-query-search-1.html");
+                httppost.setEntity(entity);
+                httppost.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36");
+                httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
+                try {
+                    response = httpClient.execute(httppost);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+
+                try {
+                    String s = EntityUtils.toString(response.getEntity());
+                    System.out.println(s);
+                } finally {
+                    response.close();
+                }
+
+                /*httpGet = new HttpGet("http://www.gsxt.gov.cn/index/blackList");
+                httpGet.setConfig(config);
+                response = httpClient.execute(httpGet);
+
+                try {
+                    String s = EntityUtils.toString(response.getEntity());
+                    System.out.println(s);
+                } finally {
+                    response.close();
+                }*/
+
                 return result;
             }
         } finally {
