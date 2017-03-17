@@ -59,11 +59,6 @@ public class CrawlService {
     @Value("${proxy_timeout}")
     private int proxyTimeout;
 
-    @Value("${proxy_host}")
-    private String proxyhost;
-    @Value("${proxy_port}")
-    private int proxyport;
-
     @Autowired
     private GeetestTrailStatMapper geetestTrailStatMapper;
     @Autowired
@@ -108,14 +103,11 @@ public class CrawlService {
     }
 
     private DBObject crack(HttpHost proxy, String province) throws Exception {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        try {
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             RequestConfig.Builder builder = RequestConfig.custom()
                     .setConnectTimeout(proxyTimeout).setSocketTimeout(proxyTimeout);
-            if (proxy == null) {
-                proxy = new HttpHost(proxyhost, proxyport);
-            }
-            if (proxy!=null) {
+            if (proxy != null) {
                 builder.setProxy(proxy);
             }
             RequestConfig config = builder.build();
@@ -126,9 +118,9 @@ public class CrawlService {
             httpGet.setConfig(config);
             httpGet.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36");
             httpGet.setHeader("Referer", Provinces.getReferrerHtml(province));
-            long httpSpan  = System.currentTimeMillis();
+            long httpSpan = System.currentTimeMillis();
             CloseableHttpResponse response = httpClient.execute(httpGet);
-            httpSpan = System.currentTimeMillis()-httpSpan;
+            httpSpan = System.currentTimeMillis() - httpSpan;
             String output;
             try {
                 HttpEntity entity = response.getEntity();
@@ -139,7 +131,7 @@ public class CrawlService {
             DBObject parse = (DBObject) JSON.parse(output);
 
 
-            // 2
+            // 2 get second challenge and etc.
             String gt = (String) parse.get("gt");
             String challenge = (String) parse.get("challenge");
             URI uri = new URIBuilder()
@@ -169,7 +161,7 @@ public class CrawlService {
             }
 
 
-            //3
+            //3 resolve deltaX
             long imageStart = System.currentTimeMillis();
             String fullbgSrc = PRE_FIX + parse.get("fullbg");
             List<String> fullbgPositionList = POSITIONS;
@@ -214,7 +206,7 @@ public class CrawlService {
             }
             String trailStr = geetestTrail.getTrail();
 
-            //4
+            //4 finally, get validate
             challenge = (String) parse.get("challenge");
             StringBuilder sb = new StringBuilder();
             sb.append("http://api.geetest.com/ajax.php?");
@@ -241,12 +233,12 @@ public class CrawlService {
                 response.close();
             }
             String validate = (String) parse.get("validate");
-            logger.debug("Thread: "+threadId+"\n httpCost: "+httpSpan+"ms;\timage cost: "+(imageEnd-imageStart)+"ms;\ttotal cost: " + (System.currentTimeMillis()-start)+"ms");
+            logger.debug("Thread: " + threadId + "\n httpCost: " + httpSpan + "ms;\timage cost: " + (imageEnd - imageStart) + "ms;\ttotal cost: " + (System.currentTimeMillis() - start) + "ms");
             if (validate == null) {
-                logger.debug("Thread: "+threadId+"\t"+parse);
+                logger.debug("Thread: " + threadId + "\t" + parse);
             }
             String msg = (String) parse.get("message");
-            geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId,msg);
+            geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
             if (validate == null) {
                 geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
                 return null;
@@ -258,48 +250,8 @@ public class CrawlService {
                 result.put("validate", validate);
                 geetestTrailStatMapper.updateSuccess(geetestTrail.getTrailId(), botId);
 
-                List<NameValuePair> formparams = new ArrayList<>();
-                formparams.add(new BasicNameValuePair("tab", "ent_tab"));
-                formparams.add(new BasicNameValuePair("token", ""));
-                formparams.add(new BasicNameValuePair("geetest_challenge", challenge));
-                formparams.add(new BasicNameValuePair("geetest_validate", validate));
-                formparams.add(new BasicNameValuePair("geetest_seccode", validate+"|jordan"));
-                formparams.add(new BasicNameValuePair("searchword", "中国技术创新"));
-                UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, Consts.UTF_8);
-                HttpPost httppost = new HttpPost("http://www.gsxt.gov.cn/corp-query-search-1.html");
-                httppost.setEntity(entity);
-                httppost.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36");
-                httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
-                try {
-                    response = httpClient.execute(httppost);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-
-                try {
-                    String s = EntityUtils.toString(response.getEntity());
-                    System.out.println(s);
-                } finally {
-                    response.close();
-                }
-
-                /*httpGet = new HttpGet("http://www.gsxt.gov.cn/index/blackList");
-                httpGet.setConfig(config);
-                response = httpClient.execute(httpGet);
-
-                try {
-                    String s = EntityUtils.toString(response.getEntity());
-                    System.out.println(s);
-                } finally {
-                    response.close();
-                }*/
-
                 return result;
             }
-        } finally {
-            httpClient.close();
         }
     }
 
@@ -345,4 +297,32 @@ public class CrawlService {
             }
         }
     }
+
+    /*public static void main(String[] args) {
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+
+        // post参数
+        List<NameValuePair> formparams = new ArrayList<>();
+        formparams.add(new BasicNameValuePair("tab", "ent_tab"));
+        formparams.add(new BasicNameValuePair("token", ""));
+        formparams.add(new BasicNameValuePair("geetest_challenge", challenge));
+        formparams.add(new BasicNameValuePair("geetest_validate", validate));
+        formparams.add(new BasicNameValuePair("geetest_seccode", validate+"|jordan"));
+        formparams.add(new BasicNameValuePair("searchword", "中国技术创新"));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, Consts.UTF_8);
+
+        // 构建HttpPost对象
+        HttpPost httppost = new HttpPost("http://www.gsxt.gov.cn/corp-query-search-1.html");
+        httppost.setEntity(entity);
+        httppost.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36");
+        httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
+
+
+        try (CloseableHttpResponse response = httpClient.execute(httppost)){
+            // 得到搜索结果页
+            String searchResultContent = EntityUtils.toString(response.getEntity());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }*/
 }
