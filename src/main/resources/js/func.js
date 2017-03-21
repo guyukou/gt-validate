@@ -44,7 +44,7 @@ function e(a) {
     ], c = "stuvwxyz~", d = 0, e = b.length; d < e; d++) if (a[0] == b[d][0] && a[1] == b[d][1]) return c[d];
     return 0
 }
-function f(arrStr) {
+function getA(arrStr) {
     eval("var a = " + arrStr);
     for (var b, f = a, g = [], h = [], i = [], j = 0, k = f.length; j < k; j++) b = e(f[j]), b ? h.push(b) : (g.push(d(f[j][0])), h.push(d(f[j][1]))), i.push(d(f[j][2]));
     return encodeURIComponent(g.join("") + "!!" + h.join("") + "!!" + i.join(""));

@@ -56,7 +56,7 @@ public class JSEngine {
     public static String getA(String key1) {
 
         try {
-            return (String) invoke.invokeFunction("f", key1);
+            return (String) invoke.invokeFunction("getA", key1);
         } catch (ScriptException e) {
             e.printStackTrace();
         } catch (NoSuchMethodException e) {
