@@ -197,6 +197,8 @@ public class CrawlService {
             if (ImageUtils.combineImages(fullbgSrc, fullbgPointList, lineItemCount, itemWidth, itemHeight, fullbgImagePath, imageSubfix)
                     && ImageUtils.combineImages(bgSrc, bgPointList, lineItemCount, itemWidth, itemHeight, bgImagePath, imageSubfix)) {
                 deltaX = ImageUtils.findXDiffRectangeOfTwoImage(fullbgImagePath, bgImagePath);
+                deleteImage(fullbgImagePath);
+                deleteImage(bgImagePath);
             }
             long imageEnd = System.currentTimeMillis();
             int botId = Provinces.getBotId(province);
@@ -295,6 +297,16 @@ public class CrawlService {
             }finally {
                 Provinces.returnProxies(province, proxy);
             }
+        }
+    }
+    private void deleteImage(String fullbgImagePath) {
+        File file = new File(fullbgImagePath);
+        // 路径为文件且不为空则进行删除
+        boolean dFlag = true;
+        if (file.isFile() && file.exists()) {
+            dFlag = file.delete();
+        }
+        if (!dFlag) {
         }
     }
 
