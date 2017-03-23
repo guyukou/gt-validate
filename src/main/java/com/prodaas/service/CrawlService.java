@@ -75,6 +75,7 @@ public class CrawlService {
                 result = crack(proxy, province);
             } catch (HttpHostConnectException |ConnectTimeoutException e) {
                 hostAvailable = false;
+                logger.error("connect exception", e.getMessage());
             } catch (Exception e) {
                 logger.error("crack error", e);
             } finally {
