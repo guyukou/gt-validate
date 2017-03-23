@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.net.NoRouteToHostException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +76,7 @@ public class CrawlService {
             boolean hostAvailable = true;
             try {
                 result = crack(proxy, province);
-            } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException e) {
+            } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException |SocketTimeoutException e) {
                 hostAvailable = false;
                 logger.error("connect exception", e.getMessage());
             } catch (JSONParseException e) {
