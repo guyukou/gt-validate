@@ -3,6 +3,7 @@ package com.prodaas.service;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
+import com.mongodb.util.JSONParseException;
 import com.prodaas.constant.Provinces;
 import com.prodaas.mapper.GeetestTailLogMapper;
 import com.prodaas.mapper.GeetestTrailStatMapper;
@@ -27,6 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,9 +75,12 @@ public class CrawlService {
             boolean hostAvailable = true;
             try {
                 result = crack(proxy, province);
-            } catch (HttpHostConnectException |ConnectTimeoutException e) {
+            } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException e) {
                 hostAvailable = false;
                 logger.error("connect exception", e.getMessage());
+            } catch (JSONParseException e) {
+                hostAvailable = false;
+                logger.error("unknown exception",e);
             } catch (Exception e) {
                 logger.error("crack error", e);
             } finally {
@@ -92,7 +97,7 @@ public class CrawlService {
         if (result == null) {
             result = new BasicDBObject();
             result.put("status", "error");
-            result.put("msg", "try "+count+",failed");
+            result.put("msg", "try " + count + ",failed");
         }
         result.put("try", count);
         return result;
@@ -174,7 +179,7 @@ public class CrawlService {
                 mflag = file.mkdir();
             if (!mflag)
                 return null;
-            String identification = String.valueOf(System.currentTimeMillis());
+            String identification = String.valueOf(System.currentTimeMillis()) + Thread.currentThread().getId();
             String imageSubfix = "jpg";
 
             List<String[]> fullbgPointList = new ArrayList<>();
@@ -279,6 +284,7 @@ public class CrawlService {
     private class LockProxyTask implements Runnable {
         private String province;
         private HttpHost proxy;
+
         public LockProxyTask(String province, HttpHost proxy) {
             this.province = province;
             this.proxy = proxy;
@@ -290,11 +296,12 @@ public class CrawlService {
                 TimeUnit.MINUTES.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }finally {
+            } finally {
                 Provinces.returnProxies(province, proxy);
             }
         }
     }
+
     private void deleteImage(String fullbgImagePath) {
         File file = new File(fullbgImagePath);
         // 路径为文件且不为空则进行删除
@@ -311,7 +318,7 @@ public class CrawlService {
 
         // post参数
         List<NameValuePair> formparams = new ArrayList<>();
-        formparams.add(new BasicNameValuePair("tab", "ent_tab"));
+        formparams.add(new BasicNamealuePair("tab", "ent_tab"));
         formparams.add(new BasicNameValuePair("token", ""));
         formparams.add(new BasicNameValuePair("geetest_challenge", challenge));
         formparams.add(new BasicNameValuePair("geetest_validate", validate));
