@@ -15,6 +15,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -72,7 +73,7 @@ public class CrawlService {
             boolean hostAvailable = true;
             try {
                 result = crack(proxy, province);
-            } catch (HttpHostConnectException e) {
+            } catch (HttpHostConnectException |ConnectTimeoutException e) {
                 hostAvailable = false;
             } catch (Exception e) {
                 logger.error("crack error", e);
