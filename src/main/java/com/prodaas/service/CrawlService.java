@@ -110,7 +110,7 @@ public class CrawlService {
             RequestConfig.Builder builder = RequestConfig.custom()
                     .setConnectTimeout(proxyTimeout).setSocketTimeout(proxyTimeout);
             if (proxy != null) {
-//                builder.setProxy(proxy);
+                builder.setProxy(proxy);
             }
             RequestConfig config = builder.build();
             long threadId = Thread.currentThread().getId();
