@@ -76,12 +76,12 @@ public class CrawlService {
             boolean hostAvailable = true;
             try {
                 result = crack(proxy, province);
-            } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException |SocketTimeoutException e) {
+            } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException | SocketTimeoutException e) {
                 hostAvailable = false;
-                logger.error("connect exception", e.getMessage());
+                logger.error("connect exception", e);
             } catch (JSONParseException e) {
                 hostAvailable = false;
-                logger.error("unknown exception",e);
+                logger.error("unknown exception", e);
             } catch (Exception e) {
                 logger.error("crack error", e);
             } finally {
@@ -110,7 +110,7 @@ public class CrawlService {
             RequestConfig.Builder builder = RequestConfig.custom()
                     .setConnectTimeout(proxyTimeout).setSocketTimeout(proxyTimeout);
             if (proxy != null) {
-                builder.setProxy(proxy);
+//                builder.setProxy(proxy);
             }
             RequestConfig config = builder.build();
             long threadId = Thread.currentThread().getId();
