@@ -19,11 +19,11 @@
         </encoder>
     </appender>
 
-    <logger name="com.prodaas" level="debug" additivity="false">
 <!--
+    <logger name="com.prodaas" level="debug" additivity="false">
         <appender-ref ref="STDOUT"/>
--->
     </logger>
+-->
 
     <root level="debug">
         <appender-ref ref="STDOUT"/>

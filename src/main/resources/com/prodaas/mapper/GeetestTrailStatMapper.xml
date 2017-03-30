@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.prodaas.mapper.GeetestTrailStatMapper">
+    <select id="updateFailure" >
+        UPDATE geetest_trail_stat
+        SET failure_count = failure_count + 1,
+        failure_continuity = failure_continuity + 1,
+        status = CASE
+        WHEN failure_continuity >= 20 THEN 1
+        ELSE 0
+        END
+        WHERE
+          trail_id = #{trailId}
+        AND bot_id = #{botId}
+    </select>
+</mapper>

@@ -115,6 +115,7 @@ public class CrawlService {
             RequestConfig config = builder.build();
             long threadId = Thread.currentThread().getId();
             long start = System.currentTimeMillis();
+            logger.debug("get first challenge");
             // 1. get first challenge
             HttpGet httpGet = new HttpGet(Provinces.getCaptchaUrl(province).replace("{timestamp}", System.currentTimeMillis() + ""));
             httpGet.setConfig(config);
@@ -132,7 +133,7 @@ public class CrawlService {
             }
             DBObject parse = (DBObject) JSON.parse(output);
 
-
+            logger.debug("2 get second challenge and etc.");
             // 2 get second challenge and etc.
             String gt = (String) parse.get("gt");
             String challenge = (String) parse.get("challenge");
@@ -162,7 +163,7 @@ public class CrawlService {
                 response.close();
             }
 
-
+            logger.debug("resolve deltaX");
             //3 resolve deltaX
             long imageStart = System.currentTimeMillis();
             String fullbgSrc = PRE_FIX + parse.get("fullbg");
@@ -210,6 +211,7 @@ public class CrawlService {
             }
             String trailStr = geetestTrail.getTrail();
 
+            logger.debug("finally, get validate");
             //4 finally, get validate
             challenge = (String) parse.get("challenge");
             StringBuilder sb = new StringBuilder();
