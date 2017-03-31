@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Update;
  * Created by guyu on 2017/3/13.
  */
 public interface GeetestTrailStatMapper {
-    @Select("SELECT o.trail_id,o.deltax,o.trail FROM geetest_trail as o,geetest_trail_stat as p WHERE o.trail_id=p.trail_id AND p.bot_id=#{botId} AND o.deltax=#{deltaX} AND p.status = 0  ORDER BY o.deltax asc,p.success_count/(p.failure_count+p.success_count) DESC  LIMIT 1")
+    @Select("SELECT * FROM (SELECT o.trail_id,o.trail FROM geetest_trail as o,geetest_trail_stat as p WHERE o.trail_id=p.trail_id AND p.bot_id=#{botId} AND o.deltax=#{deltaX} AND p.status = 0  ORDER BY p.failure_continuity  LIMIT 20)t ORDER BY RAND() LIMIT 1")
     GeetestTrail findOneByDeltaX(@Param("deltaX") int deltaX, @Param("botId") int botId);
 
     @Update("UPDATE geetest_trail_stat SET success_count = success_count + 1, failure_continuity = 0 WHERE trail_id = #{trailId} and bot_id = #{botId}")
