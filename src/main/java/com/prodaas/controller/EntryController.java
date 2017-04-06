@@ -22,6 +22,8 @@ public class EntryController {
     @Autowired
     private CrawlService crawlService;
 
+    int i = 0;
+
     @RequestMapping("/{province}")
     @ResponseBody
     public Object getGCV(@PathVariable("province") String province) {
@@ -33,6 +35,7 @@ public class EntryController {
         }
 
         DBObject result = crawlService.getGCV(province);
+        System.out.println(++i+".try: "+result.get("try"));
 
         return result;
     }

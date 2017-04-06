@@ -205,7 +205,10 @@ public class CrawlService {
             }
             long imageEnd = System.currentTimeMillis();
             int botId = Provinces.getBotId(province);
-            GeetestTrail geetestTrail = geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId);
+            long start_1 = System.currentTimeMillis();
+            GeetestTrail geetestTrail = selectRandom(geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId));
+            long end_1 = System.currentTimeMillis();
+            logger.debug("select cost: "+(end_1-start_1)+"ms");
             if (geetestTrail == null) {
                 return null;
             }
@@ -228,7 +231,8 @@ public class CrawlService {
             httpGet.setConfig(config);
             httpGet.setHeader("Referer", Provinces.getReferrerHtml(province));
             httpSpan -= System.currentTimeMillis();
-            TimeUnit.MILLISECONDS.sleep(Integer.parseInt(passTime));
+            int sleepTime = Integer.parseInt(passTime);
+            TimeUnit.MILLISECONDS.sleep(sleepTime);
             response = httpClient.execute(httpGet);
             httpSpan += System.currentTimeMillis();
 
@@ -244,7 +248,12 @@ public class CrawlService {
                 logger.debug("Thread: " + threadId + "\t" + parse);
             }
             String msg = (String) parse.get("message");
+            start_1 = System.currentTimeMillis();
             geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
+            end_1 = System.currentTimeMillis();
+            logger.debug("insert cost: "+(end_1-start_1)+"ms");
+            // 增加破解时间间隔
+            TimeUnit.SECONDS.sleep(3);
             if (validate == null) {
                 geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
                 return null;
@@ -259,6 +268,15 @@ public class CrawlService {
                 return result;
             }
         }
+    }
+
+    private GeetestTrail selectRandom(List<GeetestTrail> trails) {
+        int size = trails.size();
+        if (size == 0) {
+            return null;
+        }
+        int index = random.nextInt(size);
+        return trails.get(index);
     }
 
 
