@@ -18,6 +18,7 @@ public class Provinces {
     private static Map<String, String> captchaUrls = new HashMap<>();
     private static Map<String, Integer> botIds = new HashMap<>();
     private static Map<String, Boolean> isUseProxy = new HashMap<>();
+    private static Map<String, Integer> proxyFailureContinuity = new HashMap<>();
     public static boolean containsProvince(String province) {
         return provinces.contains(province);
     }
@@ -57,6 +58,20 @@ public class Provinces {
         }
     }
 
+    public synchronized static boolean updateFailureContinuity(String ip, boolean failure) {
+        if (!failure) {
+            proxyFailureContinuity.put(ip, 0);
+            return true;
+        } else {
+            Integer failureContinuity = proxyFailureContinuity.get(ip);
+            if (failureContinuity == null) {
+                failureContinuity = 0;
+            }
+            proxyFailureContinuity.put(ip, failureContinuity + 1);
+            return failureContinuity<=15;
+        }
+    }
+
     public static void putUseProxy(String province, Boolean useProxy) {
         isUseProxy.put(province, useProxy);
     }
@@ -80,4 +95,7 @@ public class Provinces {
         provinces.add(province);
     }
 
+    public static Map<String, Integer> getProxyFailureContinuity() {
+        return proxyFailureContinuity;
+    }
 }

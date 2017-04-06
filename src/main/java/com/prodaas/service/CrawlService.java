@@ -5,6 +5,7 @@ import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
 import com.prodaas.constant.Provinces;
+import com.prodaas.exception.IPLimitException;
 import com.prodaas.mapper.GeetestTailLogMapper;
 import com.prodaas.mapper.GeetestTrailStatMapper;
 import com.prodaas.model.GeetestTrail;
@@ -56,6 +57,8 @@ public class CrawlService {
     private int tryCount;
     @Value("${proxy_timeout}")
     private int proxyTimeout;
+    @Value("${crack_interval}")
+    private int crackInterval;
 
     @Autowired
     private GeetestTrailStatMapper geetestTrailStatMapper;
@@ -74,6 +77,7 @@ public class CrawlService {
             }
 
             boolean hostAvailable = true;
+            boolean ipLimit = false;
             try {
                 result = crack(proxy, province);
             } catch (HttpHostConnectException | ConnectTimeoutException | NoRouteToHostException | SocketTimeoutException e) {
@@ -82,13 +86,17 @@ public class CrawlService {
             } catch (JSONParseException e) {
                 hostAvailable = false;
                 logger.error("unknown exception", e);
+            } catch (IPLimitException e) {
+                ipLimit = true;
+                logger.error("ip limit", e);
             } catch (Exception e) {
                 logger.error("crack error", e);
             } finally {
                 if (hostAvailable) {
                     Provinces.returnProxies(province, proxy);
                 } else {
-                    exec.execute(new LockProxyTask(province, proxy));
+                    int sleepTime = ipLimit ? 3600 : 30;
+                    exec.execute(new LockProxyTask(province, proxy, sleepTime));
                 }
             }
             if (result != null) {
@@ -115,7 +123,6 @@ public class CrawlService {
             RequestConfig config = builder.build();
             long threadId = Thread.currentThread().getId();
             long start = System.currentTimeMillis();
-            logger.debug("get first challenge");
             // 1. get first challenge
             HttpGet httpGet = new HttpGet(Provinces.getCaptchaUrl(province).replace("{timestamp}", System.currentTimeMillis() + ""));
             httpGet.setConfig(config);
@@ -132,8 +139,8 @@ public class CrawlService {
                 response.close();
             }
             DBObject parse = (DBObject) JSON.parse(output);
+            logger.trace(parse.toString());
 
-            logger.debug("2 get second challenge and etc.");
             // 2 get second challenge and etc.
             String gt = (String) parse.get("gt");
             String challenge = (String) parse.get("challenge");
@@ -159,11 +166,11 @@ public class CrawlService {
             try {
                 HttpEntity entity = response.getEntity();
                 parse = (DBObject) JSON.parse(getGTBody(EntityUtils.toString(entity)));
+                logger.trace(parse.toString());
             } finally {
                 response.close();
             }
 
-            logger.debug("resolve deltaX");
             //3 resolve deltaX
             long imageStart = System.currentTimeMillis();
             String fullbgSrc = PRE_FIX + parse.get("fullbg");
@@ -208,13 +215,12 @@ public class CrawlService {
             long start_1 = System.currentTimeMillis();
             GeetestTrail geetestTrail = selectRandom(geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId));
             long end_1 = System.currentTimeMillis();
-            logger.debug("select cost: "+(end_1-start_1)+"ms");
+            logger.debug("select cost: " + (end_1 - start_1) + "ms");
             if (geetestTrail == null) {
                 return null;
             }
             String trailStr = geetestTrail.getTrail();
 
-            logger.debug("finally, get validate");
             //4 finally, get validate
             challenge = (String) parse.get("challenge");
             StringBuilder sb = new StringBuilder();
@@ -243,7 +249,6 @@ public class CrawlService {
                 response.close();
             }
             String validate = (String) parse.get("validate");
-            logger.debug("Thread: " + threadId + "\n httpCost: " + httpSpan + "ms;\timage cost: " + (imageEnd - imageStart) + "ms;\ttotal cost: " + (System.currentTimeMillis() - start) + "ms");
             if (validate == null) {
                 logger.debug("Thread: " + threadId + "\t" + parse);
             }
@@ -251,11 +256,18 @@ public class CrawlService {
             start_1 = System.currentTimeMillis();
             geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
             end_1 = System.currentTimeMillis();
-            logger.debug("insert cost: "+(end_1-start_1)+"ms");
+            logger.debug("insert cost: " + (end_1 - start_1) + "ms");
             // 增加破解时间间隔
-            TimeUnit.SECONDS.sleep(3);
+            TimeUnit.MILLISECONDS.sleep(crackInterval);
+            boolean error = false;
+            if (proxy != null) {
+                error = Provinces.updateFailureContinuity(proxy.getHostName(), validate == null);
+            }
             if (validate == null) {
                 geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
+                if (error) {
+                    throw new IPLimitException();
+                }
                 return null;
             } else {
                 DBObject result = new BasicDBObject();
@@ -302,26 +314,6 @@ public class CrawlService {
         return 25 + random.nextInt(35) + "";
     }
 
-    private class LockProxyTask implements Runnable {
-        private String province;
-        private HttpHost proxy;
-
-        public LockProxyTask(String province, HttpHost proxy) {
-            this.province = province;
-            this.proxy = proxy;
-        }
-
-        @Override
-        public void run() {
-            try {
-                TimeUnit.MINUTES.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                Provinces.returnProxies(province, proxy);
-            }
-        }
-    }
 
     private void deleteImage(String fullbgImagePath) {
         File file = new File(fullbgImagePath);

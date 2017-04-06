@@ -39,4 +39,10 @@ public class EntryController {
 
         return result;
     }
+
+    @RequestMapping("/proxyStatus")
+    @ResponseBody
+    public Object proxyStatus() {
+        return Provinces.getProxyFailureContinuity();
+    }
 }
