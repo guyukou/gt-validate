@@ -5,12 +5,14 @@ import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
 import com.prodaas.constant.Provinces;
+import com.prodaas.exception.DeltaXResolveFailException;
 import com.prodaas.exception.IPLimitException;
 import com.prodaas.mapper.GeetestTailLogMapper;
 import com.prodaas.mapper.GeetestTrailStatMapper;
 import com.prodaas.model.GeetestTrail;
 import com.prodaas.util.ImageUtils;
 import com.prodaas.util.JSEngine;
+import com.prodaas.util.TrailGen;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
@@ -206,20 +208,26 @@ public class CrawlService {
             int deltaX = 0;
             if (ImageUtils.combineImages(fullbgSrc, fullbgPointList, lineItemCount, itemWidth, itemHeight, fullbgImagePath, imageSubfix)
                     && ImageUtils.combineImages(bgSrc, bgPointList, lineItemCount, itemWidth, itemHeight, bgImagePath, imageSubfix)) {
-                deltaX = ImageUtils.findXDiffRectangeOfTwoImage(fullbgImagePath, bgImagePath);
+                try {
+                    deltaX = ImageUtils.findXDiffRectangeOfTwoImage(fullbgImagePath, bgImagePath);
+                } catch (DeltaXResolveFailException e) {
+                    e.printStackTrace();
+                    throw e;
+                }
                 deleteImage(fullbgImagePath);
                 deleteImage(bgImagePath);
             }
             long imageEnd = System.currentTimeMillis();
             int botId = Provinces.getBotId(province);
             long start_1 = System.currentTimeMillis();
-            GeetestTrail geetestTrail = selectRandom(geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId));
+//            GeetestTrail geetestTrail = selectRandom(geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId));
             long end_1 = System.currentTimeMillis();
             logger.debug("select cost: " + (end_1 - start_1) + "ms");
-            if (geetestTrail == null) {
-                return null;
-            }
-            String trailStr = geetestTrail.getTrail();
+//            if (geetestTrail == null) {
+//                return null;
+//            }
+            String trailStr = TrailGen.generateTrail(deltaX-6);
+            System.out.println(deltaX-6);
 
             //4 finally, get validate
             challenge = (String) parse.get("challenge");
@@ -254,7 +262,7 @@ public class CrawlService {
             }
             String msg = (String) parse.get("message");
             start_1 = System.currentTimeMillis();
-            geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
+//            geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
             end_1 = System.currentTimeMillis();
             logger.debug("insert cost: " + (end_1 - start_1) + "ms");
             // 增加破解时间间隔
@@ -264,7 +272,7 @@ public class CrawlService {
                 error = Provinces.updateFailureContinuity(proxy.getHostName(), validate == null);
             }
             if (validate == null) {
-                geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
+//                geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
                 if (error) {
                     throw new IPLimitException();
                 }
@@ -275,7 +283,7 @@ public class CrawlService {
                 result.put("gt", gt);
                 result.put("challenge", challenge);
                 result.put("validate", validate);
-                geetestTrailStatMapper.updateSuccess(geetestTrail.getTrailId(), botId);
+//                geetestTrailStatMapper.updateSuccess(geetestTrail.getTrailId(), botId);
 
                 return result;
             }
