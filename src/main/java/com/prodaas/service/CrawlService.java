@@ -1,5 +1,6 @@
 package com.prodaas.service;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
@@ -13,6 +14,7 @@ import com.prodaas.model.GeetestTrail;
 import com.prodaas.util.ImageUtils;
 import com.prodaas.util.JSEngine;
 import com.prodaas.util.TrailGen;
+import com.prodaas.util.TrailWeaver;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
@@ -124,7 +126,6 @@ public class CrawlService {
             }
             RequestConfig config = builder.build();
             long threadId = Thread.currentThread().getId();
-            long start = System.currentTimeMillis();
             // 1. get first challenge
             HttpGet httpGet = new HttpGet(Provinces.getCaptchaUrl(province).replace("{timestamp}", System.currentTimeMillis() + ""));
             httpGet.setConfig(config);
@@ -174,7 +175,6 @@ public class CrawlService {
             }
 
             //3 resolve deltaX
-            long imageStart = System.currentTimeMillis();
             String fullbgSrc = PRE_FIX + parse.get("fullbg");
             List<String> fullbgPositionList = POSITIONS;
             String bgSrc = PRE_FIX + parse.get("bg");
@@ -217,20 +217,16 @@ public class CrawlService {
                 deleteImage(fullbgImagePath);
                 deleteImage(bgImagePath);
             }
-            long imageEnd = System.currentTimeMillis();
-            int botId = Provinces.getBotId(province);
             long start_1 = System.currentTimeMillis();
-//            GeetestTrail geetestTrail = selectRandom(geetestTrailStatMapper.findOneByDeltaX(deltaX - 6, botId));
             long end_1 = System.currentTimeMillis();
             logger.debug("select cost: " + (end_1 - start_1) + "ms");
-//            if (geetestTrail == null) {
-//                return null;
-//            }
-            String trailStr = TrailGen.generateTrail(deltaX-6);
-            System.out.println(deltaX-6);
+//            String trailStr = TrailGen.generateTrail(deltaX-6);
+            String trailStr = TrailWeaver.getTrail(deltaX-6);
 
             //4 finally, get validate
             challenge = (String) parse.get("challenge");
+            String s = (String) parse.get("s");
+            BasicDBList c = (BasicDBList) parse.get("c");
             StringBuilder sb = new StringBuilder();
             sb.append("http://api.geetest.com/ajax.php?");
             sb.append("gt=").append(gt);
@@ -239,16 +235,14 @@ public class CrawlService {
             String passTime = getPassTime(trailStr);
             sb.append("&").append("passtime").append("=").append(passTime);
             sb.append("&").append("imgload").append("=").append(getImgLoad());
-            sb.append("&").append("a").append("=").append(JSEngine.getA(trailStr));
+            sb.append("&").append("aa").append("=").append(JSEngine.getA(trailStr,c.toString(),s));
             sb.append("&").append("callback").append("=").append("geetest_" + System.currentTimeMillis());
             httpGet = new HttpGet(sb.toString());
             httpGet.setConfig(config);
             httpGet.setHeader("Referer", Provinces.getReferrerHtml(province));
-            httpSpan -= System.currentTimeMillis();
             int sleepTime = Integer.parseInt(passTime);
             TimeUnit.MILLISECONDS.sleep(sleepTime);
             response = httpClient.execute(httpGet);
-            httpSpan += System.currentTimeMillis();
 
             try {
                 HttpEntity entity = response.getEntity();
@@ -260,9 +254,7 @@ public class CrawlService {
             if (validate == null) {
                 logger.debug("Thread: " + threadId + "\t" + parse);
             }
-            String msg = (String) parse.get("message");
             start_1 = System.currentTimeMillis();
-//            geetestTailLogMapper.insertLog(geetestTrail.getTrailId(), botId, msg);
             end_1 = System.currentTimeMillis();
             logger.debug("insert cost: " + (end_1 - start_1) + "ms");
             // 增加破解时间间隔
@@ -272,7 +264,6 @@ public class CrawlService {
                 error = Provinces.updateFailureContinuity(proxy.getHostName(), validate == null);
             }
             if (validate == null) {
-//                geetestTrailStatMapper.updateFailure(geetestTrail.getTrailId(), botId);
                 if (error) {
                     throw new IPLimitException();
                 }
@@ -283,7 +274,6 @@ public class CrawlService {
                 result.put("gt", gt);
                 result.put("challenge", challenge);
                 result.put("validate", validate);
-//                geetestTrailStatMapper.updateSuccess(geetestTrail.getTrailId(), botId);
 
                 return result;
             }
