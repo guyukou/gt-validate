@@ -1,7 +1,7 @@
 package com.prodaas.util;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -15,7 +15,7 @@ public class TrailWeaver {
         }
         int originDeltaX = deltaX;
         if (deltaX < 30 || deltaX > 200) {
-            throw new IllegalArgumentException("deltaX outOf bound: " + deltaX);
+            throw new IllegalArgumentException("fullDeltaX outOf bound: " + deltaX);
         }
         boolean needMoreTrail = shouldDo(70) && deltaX < 185;
         // 增加deltaX
@@ -34,7 +34,7 @@ public class TrailWeaver {
         int endTrailDeltaXSum = sumDeltaX(endTrail);
         int middleTrailDeltaXSum = deltaX - startTrailDeltaXSum - endTrailDeltaXSum;
 
-        List<int[]> middleTrail = generateMiddleTrail(middleTrailDeltaXSum, deltaX);
+        List<int[]> middleTrail = generateMiddleTrail2(middleTrailDeltaXSum, deltaX);
         List<int[]> result = new ArrayList<>(startTrail);
         result.addAll(middleTrail);
         result.addAll(endTrail);
@@ -202,6 +202,165 @@ public class TrailWeaver {
 
         return result;
     }
+
+    private static List<int[]> generateMiddleTrail2(int middleTrailDeltaXSum, int fullDeltaX) {
+        List<int[]> result = new ArrayList<>();
+        if (fullDeltaX <= 71) {
+            int length = middleTrailDeltaXSum;
+            List<Integer> deltaXArray = new ArrayList<>(length);
+            Random rand = new Random();
+            int i = 3 + rand.nextInt(1);
+            for (int j = 0; j < length; j++) {
+                deltaXArray.add(1);
+            }
+            while (i < length) {
+                int j = rand.nextInt(100);
+                int num = j < 5 ? 3 : 2;
+                deltaXArray.set(i, num);
+                i += 3 + rand.nextInt(1);
+            }
+            int sum = 0;
+            for (int i1 : deltaXArray) {
+                sum += i1;
+            }
+
+            while (sum > middleTrailDeltaXSum) {
+                sum -= deltaXArray.get(deltaXArray.size() - 1);
+                deltaXArray = deltaXArray.subList(0, deltaXArray.size() - 1);
+            }
+
+            int slot = middleTrailDeltaXSum - sum;
+            for (int j = 0; j < slot; j++) {
+                deltaXArray.add(1);
+            }
+
+
+
+            List<Integer> deltaTBody = new ArrayList<>();
+            int m = 0;
+            while (m < middleTrailDeltaXSum) {
+                int i1 = 2 + rand.nextInt(1);
+                for (int j = 0; j < i1; j++) {
+                    deltaTBody.add(18 + rand.nextInt(2));
+                }
+                deltaTBody.add(30 + rand.nextInt(20));
+                m += i1 + 1;
+            }
+            for (int j = 0; j < deltaXArray.size(); j++) {
+                int deltaY = shouldDo(20) ? getRandomInt(-2, 3) : 0;
+                result.add(new int[]{deltaXArray.get(j), deltaY, deltaTBody.get(j)});
+            }
+
+
+        } else if (fullDeltaX <= 130) {
+            List<Integer> deltaXMiddleArray = new ArrayList<>();
+            List<Integer> deltaTMiddleArray = new ArrayList<>();
+            int deltaXMiddleSum = middleTrailDeltaXSum;
+            while (deltaXMiddleSum > 10) {
+                int aDeltaX = rand.nextInt(10) < 4 ? 1 : 2;
+                deltaXMiddleArray.add(aDeltaX);
+                deltaXMiddleSum -= aDeltaX;
+
+                aDeltaX += rand.nextInt(1);
+                deltaXMiddleSum -= aDeltaX;
+                deltaXMiddleArray.add(aDeltaX);
+
+                aDeltaX += rand.nextInt(10) < 7 ? 2 : 1;
+                deltaXMiddleSum -= aDeltaX;
+                deltaXMiddleArray.add(aDeltaX);
+
+                if (rand.nextInt(10) < 3) {
+                    aDeltaX += 1 + rand.nextInt(1);
+                    deltaXMiddleSum -= aDeltaX;
+                    deltaXMiddleArray.add(aDeltaX);
+                }
+            }
+            boolean first = true;
+            for (int i = 0; i < deltaXMiddleArray.size(); i++) {
+                if (deltaXMiddleArray.get(i) == 4) {
+                    if (first) {
+                        first = false;
+                        continue;
+                    }
+                    int start = i;
+                    while (deltaXMiddleSum-- > 0) {
+                        deltaXMiddleArray.set(start, deltaXMiddleArray.get(start) + 1);
+                        start++;
+                    }
+                }
+            }
+            for (int i = 0; i < deltaXMiddleArray.size(); i++) {
+                int time = 16 + rand.nextInt(1);
+                int random = rand.nextInt(20);
+                if (random < 3) {
+                    time -= 1;
+                } else if (random > 17) {
+                    time += 1;
+                }
+                deltaTMiddleArray.add(time);
+            }
+            for (int j = 0; j < deltaXMiddleArray.size(); j++) {
+                int deltaY = shouldDo(20) ? getRandomInt(-2, 3) : 0;
+                result.add(new int[]{deltaXMiddleArray.get(j), deltaY, deltaTMiddleArray.get(j)});
+            }
+
+        } else {
+            List<Integer> deltaXMiddleArray = new ArrayList<>();
+            List<Integer> deltaTMiddleArray = new ArrayList<>();
+            int deltaXMiddleSum = middleTrailDeltaXSum;
+            while (deltaXMiddleSum > 15) {
+                int aDeltaX = rand.nextInt(20) < 3 ? 3 : 2;
+                deltaXMiddleArray.add(aDeltaX);
+                deltaXMiddleSum -= aDeltaX;
+
+                aDeltaX += rand.nextInt(20) < 5 ? 1 : 2;
+                deltaXMiddleSum -= aDeltaX;
+                deltaXMiddleArray.add(aDeltaX);
+
+                aDeltaX += rand.nextInt(10) < 7 ? 2 : 1;
+                deltaXMiddleSum -= aDeltaX;
+                deltaXMiddleArray.add(aDeltaX);
+
+                if (rand.nextInt(10) < 7) {
+                    aDeltaX += 1;
+                    deltaXMiddleSum -= aDeltaX;
+                    deltaXMiddleArray.add(aDeltaX);
+                }
+            }
+            boolean first = true;
+            for (int i = 0; i < deltaXMiddleArray.size(); i++) {
+                if (deltaXMiddleArray.get(i) == 2) {
+                    if (first) {
+                        first = false;
+                        continue;
+                    }
+                    int start = i;
+                    while (deltaXMiddleSum-- > 0) {
+                        deltaXMiddleArray.set(start, deltaXMiddleArray.get(start) + 1);
+                        start++;
+                    }
+                }
+            }
+            for (int i = 0; i < deltaXMiddleArray.size(); i++) {
+                int time = 16 + rand.nextInt(1);
+                int random = rand.nextInt(20);
+                if (random < 3) {
+                    time -= 1;
+                } else if (random > 17) {
+                    time += 1;
+                }
+                deltaTMiddleArray.add(time);
+            }
+
+            for (int j = 0; j < deltaXMiddleArray.size(); j++) {
+                int deltaY = shouldDo(20) ? getRandomInt(-2, 3) : 0;
+                result.add(new int[]{deltaXMiddleArray.get(j), deltaY, deltaTMiddleArray.get(j)});
+            }
+
+        }
+        return result;
+    }
+
 
     private static List<int[]> generateEndTrail() {
         List<int[]> result = new ArrayList<>();
